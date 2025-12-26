@@ -5,13 +5,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  const deployedFHECounter = await deploy("FHECounter", {
+  const deployedMockUsdt = await deploy("MockUSDT", {
     from: deployer,
     log: true,
   });
 
-  console.log(`FHECounter contract: `, deployedFHECounter.address);
+  const deployedStaking = await deploy("EncryptedStaking", {
+    from: deployer,
+    args: [deployedMockUsdt.address],
+    log: true,
+  });
+
+  const mockUsdt = await hre.ethers.getContractAt("MockUSDT", deployedMockUsdt.address);
+  const staking = await hre.ethers.getContractAt("EncryptedStaking", deployedStaking.address);
+
+  const stakeTx = await mockUsdt.setStakingContract(await staking.getAddress());
+  await stakeTx.wait();
+
+  console.log(`MockUSDT contract: ${deployedMockUsdt.address}`);
+  console.log(`EncryptedStaking contract: ${deployedStaking.address}`);
 };
 export default func;
-func.id = "deploy_fheCounter"; // id required to prevent reexecution
-func.tags = ["FHECounter"];
+func.id = "deploy_staking"; // id required to prevent reexecution
+func.tags = ["MockUSDT", "EncryptedStaking"];
